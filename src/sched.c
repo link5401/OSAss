@@ -1,4 +1,3 @@
-
 #include "queue.h"
 #include "sched.h"
 #include <pthread.h>
@@ -24,6 +23,19 @@ struct pcb_t * get_proc(void) {
 	 * [ready_queue] and return the highest priority one.
 	 * Remember to use lock to protect the queue.
 	 * */
+	pthread_mutex_lock(&queue_lock);
+	if(empty(&ready_queue)){
+		/*if ready queue is empty, get_proc takes processes from run_queue*/
+		for(int i = 0; i < run_queue.size; i++) {
+			enqueue(&ready_queue, run_queue.proc[i]);
+			
+		}
+		/*reset the sizes*/
+		ready_queue.size = run_queue.size;
+		run_queue.size = 0;
+	}
+	proc = dequeue(&ready_queue);
+	pthread_mutex_unlock(&queue_lock);
 	return proc;
 }
 
