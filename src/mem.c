@@ -51,9 +51,9 @@ static struct page_table_t * get_page_table(
 	 * */
 
 	int i;
-	for (i = 0; i < seg_table->size; i++) {
+	for (i = 0; i < seg_table->size; i++) 
 		// Enter your code here
-	}
+        if(index == seg_table->table[i].v_index) return seg_table->table[i].pages; 
 	return NULL;
 
 }
@@ -87,7 +87,9 @@ static int translate(
 			 * to [p_index] field of page_table->table[i] to 
 			 * produce the correct physical address and save it to
 			 * [*physical_addr]  */
-			return 1;
+		    *physical_addr = offset
+                        + (page_table->table[i].p_index << OFFSET_LEN);
+            return 1;
 		}
 	}
 	return 0;	
@@ -104,7 +106,11 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 	uint32_t num_pages = (size % PAGE_SIZE) ? size / PAGE_SIZE :
 		size / PAGE_SIZE + 1; // Number of pages we will use
 	int mem_avail = 0; // We could allocate new memory region or not?
-
+    int free_page = 0;
+    for(int i = 0; i < NUM_PAGES; i++)
+        if(_mem_stat[i].proc == 0) free_page++;
+    if (free_page >= num_pages && (proc->bp + num_pages * PAGE_SIZE <= (1 << ADDRESS_SIZE)))    
+    mem_avail = 1;
 	/* First we must check if the amount of free memory in
 	 * virtual address space and physical address space is
 	 * large enough to represent the amount of required 
