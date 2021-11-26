@@ -146,7 +146,7 @@ addr_t alloc_mem(uint32_t size, struct pcb_t *proc)
 		 * 	- Add entries to segment table page tables of [proc]
 		 * 	  to ensure accesses to allocated memory slot is
 		 * 	  valid. */
-		printf("This is the break pointer || the num_pages || size of process: %d || %d || %d \n", proc->bp, num_pages, b);
+		//printf("This is the break pointer || the num_pages || size of process: %d || %d || %d \n", proc->bp, num_pages, b);
 		/* Update status of physical pages which will be allocated
 		 * to [proc] in _mem_stat. Tasks to do:
 		 * 	- Update [proc], [index], and [next] field
@@ -212,9 +212,9 @@ addr_t alloc_mem(uint32_t size, struct pcb_t *proc)
 		}
 	}
 	/*FOR DEBUG PURPOSES*/
-	printf("---------------ALLOCATION-----------\n");
-	dump();
-	printf("------------------------------------\n");
+	// printf("---------------ALLOCATION-----------\n");
+	// dump();
+	// printf("------------------------------------\n");
 	pthread_mutex_unlock(&mem_lock);
 	return ret_mem;
 }
@@ -242,7 +242,7 @@ int free_mem(addr_t address, struct pcb_t *proc)
 	if (flag == 1)
 	{
 		phy_page = phy_addr >> OFFSET_LEN;
-		printf("The address and the bp of the process: %d || %d\n", phy_page, proc->bp);
+		//printf("The address and the bp of the process: %d || %d\n", phy_page, proc->bp);
 		addr_t seg_idx; // Segment index of the segment table
 		while (phy_page != -1)
 		{
@@ -303,9 +303,9 @@ int free_mem(addr_t address, struct pcb_t *proc)
 		return_var = 1;
 	}
 	// debug and check the result after deleting
-	printf("---------------DEALLOCATION-----------\n");
-	dump();
-	printf("--------------------------------------\n");
+	// printf("---------------DEALLOCATION-----------\n");
+	// dump();
+	// printf("--------------------------------------\n");
 	pthread_mutex_unlock(&mem_lock);
 	return return_var;
 }
