@@ -160,15 +160,20 @@ addr_t alloc_mem(uint32_t size, struct pcb_t *proc)
 		int previous = -1;
 		for (int i = 0; i < NUM_PAGES; i++)
 		{
-			/*check for free mem_stat*/
+			// Fiding the available _mem_stat if we found then set the proc to proc->pid
+			// Also start insert the new page for the proc
 			if (_mem_stat[i].proc == 0)
 			{
+				//update the proc
 				_mem_stat[i].proc = proc->pid;
+				//update the index
 				_mem_stat[i].index = alloc_count++;
 				if (previous != -1)
 				{
+					//update the next
 					_mem_stat[previous].next = i;
 				}
+				// Set the previous to the current index
 				previous = i;
 
 				current_seg_index = get_first_lv(vir_addr);
@@ -202,7 +207,7 @@ addr_t alloc_mem(uint32_t size, struct pcb_t *proc)
 				proc->seg_table->table[seg_pos].pages->table[page_index].p_index = i;
 
 				vir_addr += PAGE_SIZE;
-
+				// If we have done for all pages then set the next index of the current mem to -1, then break the loop
 				if (alloc_count >= num_pages)
 				{
 					_mem_stat[i].next = -1;
@@ -246,45 +251,59 @@ int free_mem(addr_t address, struct pcb_t *proc)
 		addr_t seg_idx; // Segment index of the segment table
 		while (phy_page != -1)
 		{
+			// Set the current physical page proc to zero
 			_mem_stat[phy_page].proc = 0;
 
+			// take out the address of the segment table
 			seg_idx = get_first_lv(vir_addr);
-			// update bp
-			//proc->bp = proc->bp - PAGE_SIZE;
+
+			// Take out the page table from the segment table
 			struct page_table_t *page_table = NULL;
 			page_table = get_page_table(seg_idx, proc->seg_table);
+
+			// If the page_table is taken so we can start to delete all the unused pages
 			if (page_table != NULL)
 			{
+				// Start checking each page of the page table
 				for (i = 0; i < page_table->size; i++)
 				{
+					// If we found that this page contain the physic index we are deleting
 					if (page_table->table[i].p_index == phy_page)
 					{
+						// resize the page table
 						n = --page_table->size;
 						if (i != n)
 						{
+							// If we not delete the last then copy all the contain of the last index page for the current page
 							page_table->table[i].v_index = page_table->table[n].v_index;
 							page_table->table[i].p_index = page_table->table[n].p_index;
 						}
+						// If we found a page so then just break the loop as we know that each page have different physical page address
 						break;
 					}
 				}
+				// If the current page_table is empty
 				if (page_table->size == 0)
 				{
 					if (page_table != NULL)
 					{
+						// Delete the pointer of this page table
 						free(page_table);
 						int k;
+						// Findding the segment in the process that contain this page table
 						for (k = 0; k < proc->seg_table->size; k++)
 						{
-							// Enter your code here
+							// If we found so then check the pointer of this pages to NULL and then break the loop
 							if (proc->seg_table->table[k].v_index == seg_idx)
 							{
 								proc->seg_table->table[k].pages = NULL;
 								break;
 							}
 						}
+						// If we found and if not then just skip this routine
 						if (k < proc->seg_table->size)
 						{
+							// Copy the index of the seg table then start to resize of the array of seg table of this process
 							int j = k;
 							for (j = k; j < proc->seg_table->size - 1; j++)
 							{
@@ -295,11 +314,12 @@ int free_mem(addr_t address, struct pcb_t *proc)
 					}
 				}
 			}
-
+			// Update new page address
 			vir_addr += PAGE_SIZE;
-
+			// Update new physic page address by go to next of the _mem_stat
 			phy_page = _mem_stat[phy_page].next;
 		}
+		// If we found and delete successful then the return value is now 1
 		return_var = 1;
 	}
 	// debug and check the result after deleting
@@ -326,16 +346,19 @@ int read_mem(addr_t address, struct pcb_t *proc, BYTE *data)
 
 int write_mem(addr_t address, struct pcb_t *proc, BYTE data)
 {
+	// protect the ram everytime we write something
 	pthread_mutex_lock(&ram_lock);
 	addr_t physical_addr;
 	if (translate(address, &physical_addr, proc))
 	{
 		_ram[physical_addr] = data;
+		// Release the lock
 		pthread_mutex_unlock(&ram_lock);
 		return 0;
 	}
 	else
 	{
+		// Release the lock
 		pthread_mutex_unlock(&ram_lock);
 		return 1;
 	}
