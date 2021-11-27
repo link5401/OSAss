@@ -17,8 +17,6 @@ static struct
 } _mem_stat[NUM_PAGES];
 
 static pthread_mutex_t mem_lock;
-static pthread_mutex_t ram_lock;
-static pthread_mutex_t read_lock;
 
 void init_mem(void)
 {
@@ -333,18 +331,18 @@ int free_mem(addr_t address, struct pcb_t *proc)
 
 int read_mem(addr_t address, struct pcb_t *proc, BYTE *data)
 {
-	pthread_mutex_lock(&read_lock);
+	pthread_mutex_lock(&mem_lock);
 
 	addr_t physical_addr;
 	if (translate(address, &physical_addr, proc))
 	{
 		*data = _ram[physical_addr];
-		pthread_mutex_unlock(&read_lock);
+		pthread_mutex_unlock(&mem_lock);
 		return 0;
 	}
 	else
 	{
-		pthread_mutex_unlock(&read_lock);
+		pthread_mutex_unlock(&mem_lock);
 		return 1;
 	}
 }
@@ -352,19 +350,19 @@ int read_mem(addr_t address, struct pcb_t *proc, BYTE *data)
 int write_mem(addr_t address, struct pcb_t *proc, BYTE data)
 {
 	// protect the ram everytime we write something
-	pthread_mutex_lock(&ram_lock);
+	pthread_mutex_lock(&mem_lock);
 	addr_t physical_addr;
 	if (translate(address, &physical_addr, proc))
 	{
 		_ram[physical_addr] = data;
 		// Release the lock
-		pthread_mutex_unlock(&ram_lock);
+		pthread_mutex_unlock(&mem_lock);
 		return 0;
 	}
 	else
 	{
 		// Release the lock
-		pthread_mutex_unlock(&ram_lock);
+		pthread_mutex_unlock(&mem_lock);
 		return 1;
 	}
 }

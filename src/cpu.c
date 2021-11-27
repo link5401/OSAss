@@ -3,29 +3,39 @@
 #include "mem.h"
 #include <pthread.h>
 static pthread_mutex_t run_lock;
+static pthread_mutex_t func_lock;
 
 static int calc(struct pcb_t *proc)
 {
-	return ((unsigned long)proc & 0UL);
+	pthread_mutex_lock(&func_lock);
+	int re = (unsigned long)proc & 0UL;
+	pthread_mutex_unlock(&func_lock);
+	return re;
 }
 
 static int alloc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
 {
+	pthread_mutex_lock(&func_lock);
 	addr_t addr = alloc_mem(size, proc);
 	if (addr == 0)
 	{
+		pthread_mutex_unlock(&func_lock);
 		return 1;
 	}
 	else
 	{
 		proc->regs[reg_index] = addr;
+		pthread_mutex_unlock(&func_lock);
 		return 0;
 	}
 }
 
 static int free_data(struct pcb_t *proc, uint32_t reg_index)
 {
-	return free_mem(proc->regs[reg_index], proc);
+	pthread_mutex_lock(&func_lock);
+	int re = free_mem(proc->regs[reg_index], proc);
+	pthread_mutex_unlock(&func_lock);
+	return re;
 }
 
 static int read(
@@ -34,15 +44,18 @@ static int read(
 	uint32_t offset,	// Source address = [source] + [offset]
 	uint32_t destination)
 { // Index of destination register
-
+	pthread_mutex_lock(&func_lock);
 	BYTE data;
 	if (read_mem(proc->regs[source] + offset, proc, &data))
 	{
 		proc->regs[destination] = data;
+		pthread_mutex_unlock(&func_lock);
+
 		return 0;
 	}
 	else
 	{
+		pthread_mutex_unlock(&func_lock);
 		return 1;
 	}
 }
@@ -54,7 +67,10 @@ static int write(
 	uint32_t offset)
 { // Destination address =
 	// [destination] + [offset]
-	return write_mem(proc->regs[destination] + offset, proc, data);
+	pthread_mutex_lock(&func_lock);
+	int re = write_mem(proc->regs[destination] + offset, proc, data);
+	pthread_mutex_unlock(&func_lock);
+	return re;
 }
 
 int run(struct pcb_t *proc)
