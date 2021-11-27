@@ -18,6 +18,7 @@ static struct
 
 static pthread_mutex_t mem_lock;
 static pthread_mutex_t ram_lock;
+static pthread_mutex_t read_lock;
 
 void init_mem(void)
 {
@@ -332,14 +333,18 @@ int free_mem(addr_t address, struct pcb_t *proc)
 
 int read_mem(addr_t address, struct pcb_t *proc, BYTE *data)
 {
+	pthread_mutex_lock(&read_lock);
+
 	addr_t physical_addr;
 	if (translate(address, &physical_addr, proc))
 	{
 		*data = _ram[physical_addr];
+		pthread_mutex_unlock(&read_lock);
 		return 0;
 	}
 	else
 	{
+		pthread_mutex_unlock(&read_lock);
 		return 1;
 	}
 }
